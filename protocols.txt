@@ -1,0 +1,16 @@
+Completed:
+	http
+	dns
+
+Can do:
+	https
+	smtp
+	pop3
+	telnet
+	ad (Need to install ldapjs)
+	ssh
+
+Needs more work:
+rdp
+openvpn
+wireguard

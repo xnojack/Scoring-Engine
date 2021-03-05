@@ -1,0 +1,191 @@
+<link rel="stylesheet" href="extracted.css">
+<h2>Service Uptime</h2>
+<table id="status">
+	<tr>
+		<th>Service</th>
+		<th>Status</th>
+		<th>Score</th>
+	</tr>
+</table>
+<br/>
+<div id="service-test">
+	<h2>Service test</h2>
+	<select onClick="test()" id="testSelect">
+		<option value="dns">DNS</option>
+		<option value="telnet">Telnet (HTTP,SMTP,POP3)</option>
+	</select>
+	<form id="dns-test" method="POST" action="http://localhost:80/test">
+		<h4>DNS</h4>
+		<label>
+			Name
+			<input type="text" name="name" value=""/>
+		</label>
+		<label>
+			Server
+			<input type="text" name="server" value=""/>
+		</label>
+		<label>
+			URLs
+			<br/>
+			<textarea cols=60 rows=5 name="urls"></textarea>
+		</label>
+		<br/>
+		<label>
+			Expected (Leave blank to get hash/output)
+			<br/>
+			<textarea cols=60 rows=5 name="expected"></textarea>
+		</label>
+		<br/>
+		<button type="submit">Test</button>
+	</form>
+	<form id="telnet-test" method="POST" action="http://localhost:80/test" style="display:none">
+		<h4>Telnet (HTTP,SMTP,POP3)</h4>
+		<label>
+			Name
+			<input type="text" name="name" value=""/>
+		</label>
+		<label>
+			Telnet Commands
+			<br/>
+			<textarea cols=60 rows=5 name="cmd">GET / HTTP/1.1\nhost: google.com\r\n</textarea>
+		</label>
+		<br/>
+		<label>
+			Parameters for server
+			<br/>
+			<textarea cols=60 rows=5 name="params">{
+	"host": "google.com",
+	"port": 80,
+	"negotiationMandatory": false
+}</textarea>
+		</label>
+		<br/>
+		<label>
+			Beginning and end Trim options for telnet response
+			<br/>
+			<textarea cols=60 rows=5 name="params">["<HTML>","</HTML>"]</textarea>
+		</label>
+		<br/>
+		<label>
+			Expected (Leave blank to get hash/output)
+			<br/>
+			<textarea cols=60 rows=5 name="expected"></textarea>
+		</label>
+		<br/>
+		<button type="submit">Test</button>
+	</form>
+</div>
+<div id='services'>
+	<h2>Service Config</h2>
+</div>
+<script type="text/javascript">
+	function getUptime()
+	{
+		fetch('http://localhost:80/uptime', {
+	      headers: {
+	        'Accept': 'application/json',
+	        'Content-Type': 'application/json'
+	      }
+	    })
+	    .then(function(response) {
+	      return response.json();
+	    })
+	    .then(function(result) {
+	    	var table = document.getElementById('status')
+	    	var rows = table.rows
+	    	for(let i in result)
+	    	{
+	    		let row = rows.namedItem(i) ? rows.namedItem(i):table.insertRow()
+	    		if(!row.id) row.id = i;
+	    		
+	    		if(row.cells.length < 1)
+	    		{
+	    			cell = row.insertCell()
+	    			cell.innerHTML = i
+	    			cell = row.insertCell()
+	    			cell.innerHTML = result[i].isUp
+	    			cell = row.insertCell()
+	    			cell.innerHTML = result[i].score
+	    		}
+	    		else
+	    		{
+	    			row.cells[1].innerHTML = result[i].isUp
+	    			row.cells[2].innerHTML = result[i].score
+	    		}
+	    		row.style = result[i].isUp?'background-color: rgba(0, 255, 0, 0.3)':'background-color: rgba(255, 0, 0, 0.3)';
+	    	}
+		})
+	}
+	getUptime()
+	setInterval(function(){
+		getUptime()
+	},10000)
+</script>
+<script type="text/javascript">
+	function getServices()
+	{
+		fetch('http://localhost:80/config', {
+	      headers: {
+	        'Accept': 'application/json',
+	        'Content-Type': 'application/json'
+	      }
+	    })
+	    .then(function(response) {
+	      return response.json();
+	    })
+	    .then(function(result) {
+	    	for(let i in result)
+	    	{
+	    		let form = document.createElement('form')
+	    		let name = document.createElement('label')
+	    		name.innerHTML = 'Name'
+	    		let nameText = document.createElement('input')
+	    		nameText.type = 'text'
+	    		nameText.value = i
+	    		nameText.name = 'name'
+	    		name.appendChild(document.createElement('br'))
+	    		name.appendChild(nameText)
+	    		form.appendChild(name)
+	    		form.appendChild(document.createElement('br'))
+
+	    		for(let y in result[i])
+	    		{
+	    			let name = document.createElement('label')
+		    		name.innerHTML = y
+		    		let nameText = document.createElement('textarea')
+		    		nameText.rows = 5
+		    		nameText.cols = 60
+		    		nameText.value = y=='params'?JSON.stringify(result[i][y]).replace(',','\n'):result[i][y]
+		    		nameText.name = y
+		    		name.appendChild(document.createElement('br'))
+		    		name.appendChild(nameText)
+		    		form.appendChild(name)
+		    		form.appendChild(document.createElement('br'))
+	    		}
+	    		let button = document.createElement('button')
+	    		//button.type = 'submit'
+	    		button.innerHTML = 'Save'
+	    		form.method="POST"
+	    		form.action="http://localhost:80/config"
+	    		form.appendChild(button)
+	    		document.getElementById('services').appendChild(form)
+	    	}
+		})
+	}
+	getServices()
+	function test()
+	{
+		let selected = document.getElementById('testSelect').value
+		if(selected == "dns")
+		{
+			document.getElementById("dns-test").style = "display:block"
+			document.getElementById("telnet-test").style = "display:none"
+		}
+		else
+		{
+			document.getElementById("telnet-test").style = "display:block"
+			document.getElementById("dns-test").style = "display:none"
+		}
+
+	}
+</script>
