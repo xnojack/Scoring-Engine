@@ -1,4 +1,8 @@
+<head>
 <link rel="stylesheet" href="extracted.css">
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.0/jquery.min.js"></script>
+</head>
+
 <h2>Service Uptime</h2>
 <table id="status">
 	<tr>
@@ -8,14 +12,22 @@
 	</tr>
 </table>
 <br/>
+<h3>How to use</h3>
+<p style="width:500px">When creating or editing a service, use an empty expected value to test the service and get an expected value.
+<br/>
+If there's a value in expected when testing/saving it'll save the service to the backend and start testing it, which will overwrite any existing configs.
+<br/>
+For things like commands, urls and expected use "," to separate multiple entries.
+</p>
 <div id="service-test">
-	<h2>Service test</h2>
+	<h2>Service test/add</h2>
 	<select onClick="test()" id="testSelect">
 		<option value="dns">DNS</option>
 		<option value="telnet">Telnet (HTTP,SMTP,POP3)</option>
 	</select>
-	<form id="dns-test" method="POST" action="http://localhost:80/test">
+	<form id="dns-test" onsubmit="return onSubmit(this)">
 		<h4>DNS</h4>
+		<input type="text" name="type" value="dns" style="display:none" />
 		<label>
 			Name
 			<input type="text" name="name" value=""/>
@@ -36,9 +48,10 @@
 			<textarea cols=60 rows=5 name="expected"></textarea>
 		</label>
 		<br/>
-		<button type="submit">Test</button>
+		<button type="submit">Save/Test</button>
 	</form>
-	<form id="telnet-test" method="POST" action="http://localhost:80/test" style="display:none">
+	<form id="telnet-test" onsubmit="return onSubmit(this)" style="display:none">
+		<input type="text" name="type" value="telnet" style="display:none"/>
 		<h4>Telnet (HTTP,SMTP,POP3)</h4>
 		<label>
 			Name
@@ -63,7 +76,7 @@
 		<label>
 			Beginning and end Trim options for telnet response
 			<br/>
-			<textarea cols=60 rows=5 name="params">["<HTML>","</HTML>"]</textarea>
+			<textarea cols=60 rows=5 name="trim">["<HTML>","</HTML>"]</textarea>
 		</label>
 		<br/>
 		<label>
@@ -72,7 +85,7 @@
 			<textarea cols=60 rows=5 name="expected"></textarea>
 		</label>
 		<br/>
-		<button type="submit">Test</button>
+		<button type="submit">Save/Test</button>
 	</form>
 </div>
 <div id='services'>
@@ -120,10 +133,10 @@
 	setInterval(function(){
 		getUptime()
 	},10000)
-</script>
-<script type="text/javascript">
+	let emptyServices = $('#services').html()
 	function getServices()
 	{
+		$('#services').html(emptyServices)
 		fetch('http://localhost:80/config', {
 	      headers: {
 	        'Accept': 'application/json',
@@ -136,39 +149,38 @@
 	    .then(function(result) {
 	    	for(let i in result)
 	    	{
-	    		let form = document.createElement('form')
-	    		let name = document.createElement('label')
-	    		name.innerHTML = 'Name'
-	    		let nameText = document.createElement('input')
-	    		nameText.type = 'text'
-	    		nameText.value = i
-	    		nameText.name = 'name'
-	    		name.appendChild(document.createElement('br'))
-	    		name.appendChild(nameText)
-	    		form.appendChild(name)
-	    		form.appendChild(document.createElement('br'))
-
-	    		for(let y in result[i])
+	    		var html;
+	    		if(result[i].type == "telnet")
 	    		{
-	    			let name = document.createElement('label')
-		    		name.innerHTML = y
-		    		let nameText = document.createElement('textarea')
-		    		nameText.rows = 5
-		    		nameText.cols = 60
-		    		nameText.value = y=='params'?JSON.stringify(result[i][y]).replace(',','\n'):result[i][y]
-		    		nameText.name = y
-		    		name.appendChild(document.createElement('br'))
-		    		name.appendChild(nameText)
-		    		form.appendChild(name)
-		    		form.appendChild(document.createElement('br'))
+	    			html = document.getElementById("telnet-test").cloneNode(true)
+	    			html.style="display:block"
+	    			inputs = html.getElementsByTagName("input")
+	    			inputs.name.value = i
+	    			inputs.name.disabled = true
+	    			textareas = html.getElementsByTagName("textarea")
+	    			textareas.cmd.innerHTML = result[i].cmd
+	    			textareas.params.innerHTML = JSON.stringify(result[i].params)
+	    			textareas.trim.innerHTML = JSON.stringify(result[i].trim)
+	    			textareas.expected.innerHTML = result[i].expected
 	    		}
+	    		else if(result[i].type == "dns")
+	    		{
+	    			html = document.getElementById("dns-test").cloneNode(true)
+	    			inputs = html.getElementsByTagName("input")
+	    			inputs.name.value = i
+	    			inputs.name.disabled = true
+	    			inputs.server.value = result[i].server
+	    			textareas = html.getElementsByTagName("textarea")
+	    			textareas.urls.innerHTML = result[i].urls
+	    			textareas.expected.innerHTML = result[i].expected
+	    		}
+	    		html.id = i
 	    		let button = document.createElement('button')
-	    		//button.type = 'submit'
-	    		button.innerHTML = 'Save'
-	    		form.method="POST"
-	    		form.action="http://localhost:80/config"
-	    		form.appendChild(button)
-	    		document.getElementById('services').appendChild(form)
+	    		button.innerHTML = 'Delete'
+	    		button.onclick = function(){deleteService(i);}
+	    		button.type = "button"
+	    		html.appendChild(button)
+	    		document.getElementById('services').appendChild(html)
 	    	}
 		})
 	}
@@ -186,6 +198,63 @@
 			document.getElementById("telnet-test").style = "display:block"
 			document.getElementById("dns-test").style = "display:none"
 		}
-
 	}
+	function onSubmit(form)
+	{
+		var array = $(form).serializeArray()
+		var data = {}
+		$.each(array,function() {
+			data[this.name] = this.value || '';
+		});
+		data.type = form.getElementsByTagName("input").type.value
+		fetch('http://localhost:80/savetest',
+		{
+			method: 'POST',
+			headers: {
+				'Accept': 'application/json',
+			    'Content-Type': 'application/json'
+			},
+	        body: JSON.stringify(data)
+	    })
+	    .then(response => {
+	    	return response.json();
+	    })
+	    .then(function(result) {
+	    	if(!data.expected)
+	    	{
+	    		alert("Check console for string result")
+		    	console.log(result.str)
+		    	form.getElementsByTagName("textarea").expected.innerHTML = result.hash
+	    	}
+	    	else
+	    	{
+	    		alert("Saved")
+	    		getServices()
+	    	}
+	    })
+		return false
+	}
+	function deleteService(id)
+	{
+		let data = {
+			name: id
+		}
+		fetch('http://localhost:80/delete',
+		{
+			method: 'DELETE',
+			headers: {
+				'Accept': 'application/json',
+			    'Content-Type': 'application/json'
+			},
+	        body: JSON.stringify(data)
+	    })
+	    .then(response => {
+	    	return response.json();
+	    })
+	    .then(function(result) {
+	    	alert("Service Deleted")
+	    	getServices()
+	    })
+	}
+
 </script>

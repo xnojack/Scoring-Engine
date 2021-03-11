@@ -1,19 +1,32 @@
 {
-	"web":{
-		"type":"telnet",
-		"cmd":"GET / HTTP/1.1\nhost: google.com\r\n",
-		"params":{
-		    "host": "google.com",
-		    "port": 80,
-		    "negotiationMandatory": false
-		},
-		"trim":["<HTML>","</HTML>"],
-		"expected":"38c9f78cd037d300cd179171e11552fd"
-	},
-	"dns":{
-		"type":"dns",
-		"server":"1.1.1.1",
-		"urls":["google.com","amazon.com"],
-		"expected":["c09bda3f0f935bc20009196e741ca0ed","ca1435d3ded566022067aac33d4bd5aa"]
-	}
+    "web": {
+        "type": "telnet",
+        "cmd": [
+            "GET / HTTP/1.1\nhost: google.com\r\n"
+        ],
+        "params": {
+            "host": "google.com",
+            "port": 80,
+            "negotiationMandatory": false
+        },
+        "trim": [
+            "<HTML>",
+            "</HTML>"
+        ],
+        "expected": [
+            "38c9f78cd037d300cd179171e11552fd"
+        ]
+    },
+    "dns": {
+        "type": "dns",
+        "server": "1.1.1.1",
+        "urls": [
+            "google.com",
+            "amazon.com"
+        ],
+        "expected": [
+            "c09bda3f0f935bc20009196e741ca0ed",
+            "ca1435d3ded566022067aac33d4bd5aa"
+        ]
+    }
 }

@@ -1,11 +1,12 @@
 {
-    "web": {
-        "isUp": true,
-        "score": 1796
-    },
     "dns": {
-        "isUp": false,
-        "score": -1264,
-        "lastChecked": 0
+        "score": -115,
+        "lastChecked": 0,
+        "isUp": false
+    },
+    "web": {
+        "score": 145,
+        "lastChecked": 0,
+        "isUp": true
     }
 }
